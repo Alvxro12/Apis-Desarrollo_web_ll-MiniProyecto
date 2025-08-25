@@ -12,6 +12,10 @@ let tareas = [
     { id: 2, titulo: "Avanzar en UniSport", completada: true }
 ];
 
+// Calcula el siguiente id al iniciar (por si ya hay datos):
+let nextId = tareas.length ? Math.max(...tareas.map(t => t.id)) + 1 : 1;
+
+
 // GET → Listar todas las tareas
 app.get("/api/tareas", (req, res) => {
     res.json(tareas);
@@ -20,14 +24,21 @@ app.get("/api/tareas", (req, res) => {
 // POST → Crear una nueva tarea
 app.post("/api/tareas", (req, res) => {
     const { titulo } = req.body;
-    const nuevaTarea = {
-    id: tareas.length + 1,
-    titulo,
-    completada: false
-    };
+    if (typeof titulo !== "string" || !titulo.trim()) {
+        return res.status(400).json({ error: "El campo 'titulo' es requerido y no puede estar vacío" });
+    }
+
+    // Evitar títulos duplicados (ya que en tus otras rutas lo haces)
+    const dup = tareas.some(t => t.titulo.toLowerCase() === titulo.trim().toLowerCase());
+    if (dup) {
+        return res.status(409).json({ error: "Ya existe una tarea con ese título" });
+    }
+
+    const nuevaTarea = { id: nextId++, titulo: titulo.trim(), completada: false };
     tareas.push(nuevaTarea);
-    res.status(201).json(nuevaTarea);
+    return res.status(201).json(nuevaTarea);
 });
+
 
 // DELETE → Eliminar una tarea por id
 app.delete("/api/tareas/:id", (req, res) => {
